@@ -7,89 +7,26 @@ struct Point{
   double mass;
   size_t type;
 };
-struct Statistics{
-  virtual double ChangeValue(const Point& point,const shared_ptr<Potencial::Potencial> potencial);
-};
-struct KineticEnergy:public Statistics{
-KineticEnergy();
-  double Ekin; 
-  double GetValue();
-  double ChangeValue(const Point& point,const shared_ptr<Potencial::Potencial> potencial) override;
-};
-struct KineticEnergyPerParticle:public Statistics{
-KineticEnergyPerParticle();
-  double GetValue();
- double Ekin; 
-  size_t N;
-  double ChangeValue(const Point& point,const shared_ptr<Potencial::Potencial> potencial) override; 
-};
-struct KineticTemperatureEnergy:public Statistics{
-KineticTemperatureEnergy();
-  double GetValue();
- double Etemp; 
-  double ChangeValue(const Point& point,const shared_ptr<Potencial::Potencial> potencial) override;
-};
-struct KineticTemperatureEnergyPerParticle:public Statistics{
-KineticTemperatureEnergyPerParticle();
-  double GetValue();
-  double Etemp;
-  size_t N;
-  double ChangeValue(const Point& point,const shared_ptr<Potencial::Potencial> potencial) override;
-};
-struct PotencialEnergy:public Statistics{
-PotencialEnergy();
-  double GetValue();
-  double U;
-  double ChangeValue(const Point& point,const shared_ptr<Potencial::Potencial> potencial) override;
-};
-struct PotencialEnergyPerParticle:public Statistics{
-PotencialEnergyPerParticle();
-  double GetValue();
-  double U;
-  size_t N;
-  double ChangeValue(const Point& point,const shared_ptr<Potencial::Potencial> potencial) override;
-};
-struct FullEnergy:public Statistics{
-FullEnergy();
-  double GetValue();
-  double E;
-  double ChangeValue(const Point& point,const shared_ptr<Potencial::Potencial> potencial) override;
-};
-struct FullEnergyPerParticle:public Statistics{
-FullEnergyPerParticle();
-  double GetValue();
-  double E;
-  size_t N;
-  double ChangeValue(const Point& point,const shared_ptr<Potencial::Potencial> potencial) override;
-};
-struct InternalEnergy:public Statistics{
-InternalEnergy();
-  double GetValue();
-  double Eint;
-  double ChangeValue(const Point& point,const shared_ptr<Potencial::Potencial> potencial) override;
-};
-struct InternalEnergyPerParticle: public Statistics{
-InternalEnergyPerParticle();
-  double GetValue();
-  double Eint;
-  size_t N;
-  double ChangeValue(const Point& point,const shared_ptr<Potencial::Potencial> potencial) override;
-};
-struct Temperature: public Statistics{
-Temperature();
-  double GetValue();
-  double T;
-  size_t N;
-  double ChangeValue(const Point& point,const shared_ptr<Potencial::Potencial> potencial) override;
-};
+enum class Statistics{
+    Ekin,
+    Eterm,
+    Epot,
+    Efull,
+    Eint,
+    T};
+struct Stat{
+    map<Statistics,double> stat;
+    Stat():stat({{Statistics::Ekin,0},{Statistics::Eterm,0},{Statistics::Epot,0},{Statistics::Efull,0},{Statistics::Eint,0},{Statistics::T,0}}){}
+    double& operator[](Statistics st){
+        return stat[st];
+        }
+    double at(Statistics st) const{
+        return stat.at(st);}
+    };
 void restrict(model::Vector& vec,const model::Vector& min_corner,const model::Vector& max_corner);
 struct Box{
-   /* std::vector<model::Vector> points;
-    std::vector<double> mass;
-    std::vector<model::Vector> velocity;*/
     std::vector<Point> points;
     std::vector<model::Vector> force;
-    //std::vector<model::Vector> new_force;
     double U;
     model::Vector min_corner;
     model::Vector max_corner;
@@ -100,6 +37,7 @@ class VerleScheme{
     std::vector<std::vector<std::vector<model::Vector>>> left_bottom_corner;
     int mi,mj,mk;
     Box& box; 
+    Stat st;
     int step_number;
   public:
     struct Coord{
@@ -114,9 +52,6 @@ class VerleScheme{
     model::Vector GetBox(int i,int j,int k);   
     template<class Potencial_>
 void CalculateStep(std::vector<std::vector<std::shared_ptr<Potencial_>>> potencial,std::vector<VerleScheme::Coord> coords){
-  //std::vector<model::Vector> new_points(box.points);
-  //std::vector<model::Vector> new_velocity(box.velocity);
-  //std::vector<model::Vector> new_force(box.force);
   Coord main_box_coord = Coord {0,0,0};
   coords.push_back(main_box_coord);
   model::Vector diag = box.max_corner-box.min_corner;
@@ -142,12 +77,7 @@ void CalculateStep(std::vector<std::vector<std::shared_ptr<Potencial_>>> potenci
           }
         }
       }
-     // new_points[i]+=box.velocity[i]*delta_t+box.force[i]*delta_t*delta_t/(2*box.mass[i]);
-      //new_velocity[i]+=(box.force[i]+new_force[i])*delta_t/box.mass[i];
   }
-  //box.points = new_points;
-  //box.velocity = new_velocity;
-  //box.force = new_force;
 }
    template<class Potencial_>
   void DoStep(double delta_t,std::vector<std::vector<std::shared_ptr<Potencial_>>> potencial,std::vector<Coord> coords ){
